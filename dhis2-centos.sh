@@ -43,7 +43,7 @@ sed -e '/^.*ANSIBLE MANAGED BLOCK$/d' -i /opt/dhis2/dhis.conf
 
 ansible all -i 'localhost,' -c local -m lineinfile -a "path=/etc/sysconfig/tomcat line='JAVA_OPTS=\"-Djava.security.egd=file:/dev/./urandom\"'"
 ansible all -i 'localhost,' -c local -m lineinfile -a "path=/etc/tomcat/tomcat.conf line='JAVA_OPTS=\"-Djava.security.egd=file:/dev/./urandom\"'"
-su - tomcat -s /bin/bash -c "curl -L -o /var/lib/tomcat/webapps/ROOT.war https://www.dhis2.org/download/releases/2.27/dhis.war"
+su - tomcat -s /bin/bash -c "curl -L -o /var/lib/tomcat/webapps/ROOT.war https://www.dhis2.org/download/releases/2.28/dhis.war"
 systemctl start tomcat
 
 ansible all -i 'localhost,' -c local -m lineinfile -a "path='/etc/nginx/nginx.conf' insertafter='^[^#]\s+location\s+/\s+{' line='          proxy_pass  http://localhost:8080;' validate='nginx -c %s -t'"
