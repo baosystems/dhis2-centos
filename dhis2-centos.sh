@@ -35,14 +35,13 @@ ansible all -i 'localhost,' -c local -m postgresql_db -a "name=dhis2 owner=dhis"
 
 install -o tomcat -g tomcat -d /opt/dhis2/
 # DHIS2 configuration file for connecting to the database
-ansible all -i 'localhost,' -c local -m blockinfile -a "path=/opt/dhis2/dhis.conf owner=tomcat group=tomcat create=yes block='connection.dialect = org.hibernate.dialect.PostgreSQLDialect
+ansible all -i 'localhost,' -c local -m copy -a "dest=/opt/dhis2/dhis.conf owner=tomcat group=tomcat backup=yes content='connection.dialect = org.hibernate.dialect.PostgreSQLDialect
 connection.driver_class = org.postgresql.Driver
 connection.url = jdbc:postgresql:dhis2
 connection.username = dhis
 connection.password = {{ lookup('password', '/root/pg_dhis_passwd.txt chars=ascii_letters,digits') }}
 connection.schema = update
 '"
-sed -e '/^.*ANSIBLE MANAGED BLOCK$/d' -i /opt/dhis2/dhis.conf
 
 ansible all -i 'localhost,' -c local -m lineinfile -a "path=/etc/sysconfig/tomcat line='JAVA_OPTS=\"-Djava.security.egd=file:/dev/./urandom\"'"
 # Configure Tomcat for '/dev/urandom' -- see https://wiki.apache.org/tomcat/HowTo/FasterStartUp#Entropy_Source
