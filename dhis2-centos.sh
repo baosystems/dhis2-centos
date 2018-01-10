@@ -3,8 +3,8 @@
 # EPEL repository files
 yum -y install epel-release
 
-yum -y install -- \
 # Ansible and related requirements
+yum -y -d1 -e0 install -- \
   ansible \
   libselinux-python libsemanage-python \
   python-psycopg2 \
@@ -13,8 +13,8 @@ yum -y install -- \
 ansible all -i 'localhost,' -c local -m selinux -a "state=disabled"
 setenforce Permissive
 
-yum -y install -- \
 # Install main applications: Java, Nginx, Tomcat, PostgreSQL Server
+yum -y -d1 -e0 install -- \
   java-1.8.0-openjdk-devel \
   nginx \
   tomcat \
