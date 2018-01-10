@@ -8,7 +8,6 @@ yum -y -d1 -e0 install -- \
   ansible \
   libselinux-python libsemanage-python \
   python-psycopg2 \
-  vim-enhanced
 
 ansible all -i 'localhost,' -c local -m selinux -a "state=disabled"
 setenforce Permissive
