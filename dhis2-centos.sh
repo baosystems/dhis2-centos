@@ -6,7 +6,6 @@ yum -y install epel-release
 # Ansible and related requirements
 yum -y -d1 -e0 install -- \
   ansible \
-  libselinux-python libsemanage-python \
   python-psycopg2 \
   unzip
 
