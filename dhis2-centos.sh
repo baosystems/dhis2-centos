@@ -9,8 +9,6 @@ yum -y -d1 -e0 install -- \
   libselinux-python libsemanage-python \
   python-psycopg2 \
 
-ansible all -i 'localhost,' -c local -m selinux -a "state=disabled"
-setenforce Permissive
 
 # Install main applications: Java, Nginx, Tomcat, PostgreSQL Server
 yum -y -d1 -e0 install -- \
