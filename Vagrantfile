@@ -20,8 +20,9 @@ Vagrant.configure(2) do |config|
 
   config.vm.provision 'ansible_local' do |ansible|
     ansible.become = true
+    ansible.compatibility_mode = '2.0'
     ansible.playbook = 'main.yml'
-    ansible.verbose = true
+    ansible.verbose = false
   end
 
   config.vm.network 'forwarded_port', guest: 8080, host: 8080

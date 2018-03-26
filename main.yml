@@ -19,212 +19,232 @@
         - python-psycopg2
         - unzip
 
-    - name: "PostgreSQL: PGDG 10 repository section"
+    - name: "PostgreSQL"
+      tags: [ "postgresql" ]
       block:
 
-      - name: "PostgreSQL: Check if pgdg-centos10 package is installed"
-        shell: rpm -q pgdg-centos10
-        args:
-          warn: no
-        ignore_errors: yes
-        changed_when: False
-        register: pgdg_rpm_check
+      - name: "PostgreSQL: PGDG 10 repository section"
+        block:
 
-      - name: "PostgreSQL: PGDG 10 repository file"
-        yum_repository:
-          name: pgdg10
-          file: pgdg-10-centos
-          description: PostgreSQL 10 $releasever - $basearch
-          baseurl: https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-$releasever-$basearch
-          gpgcheck: 1
-        when: pgdg_rpm_check.rc == 1
+        - name: "PostgreSQL: Check if pgdg-centos10 package is installed"
+          shell: rpm -q pgdg-centos10
+          args:
+            warn: no
+          ignore_errors: yes
+          changed_when: False
+          register: pgdg_rpm_check
 
-      - name: "PostgreSQL: PGDG 10 repository signing key"
-        rpm_key:
-          key: https://download.postgresql.org/pub/repos/yum/RPM-GPG-KEY-PGDG
-          state: present
-        when: pgdg_rpm_check.rc == 1
+        - name: "PostgreSQL: PGDG 10 repository file"
+          yum_repository:
+            name: pgdg10
+            file: pgdg-10-centos
+            description: PostgreSQL 10 $releasever - $basearch
+            baseurl: https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-$releasever-$basearch
+            gpgcheck: 1
+          when: pgdg_rpm_check.rc == 1
 
-      - name: "PostgreSQL: PGDG 10 repository release package"
+        - name: "PostgreSQL: PGDG 10 repository signing key"
+          rpm_key:
+            key: https://download.postgresql.org/pub/repos/yum/RPM-GPG-KEY-PGDG
+            state: present
+          when: pgdg_rpm_check.rc == 1
+
+        - name: "PostgreSQL: PGDG 10 repository release package"
+          yum:
+            name: pgdg-centos10
+            state: present
+          when: pgdg_rpm_check.rc == 1
+
+      - name: "PostgreSQL: Install PostgreSQL 10 server package"
         yum:
-          name: pgdg-centos10
+          name: postgresql10-server
           state: present
-        when: pgdg_rpm_check.rc == 1
 
-    - name: "PostgreSQL: Install PostgreSQL 10 server package"
-      yum:
-        name: postgresql10-server
-        state: present
+      - name: "PostgreSQL: Enable to start on boot"
+        service:
+          name: postgresql-10
+          enabled: true
 
-    - name: "PostgreSQL: Initialize data directory"
-      command: /usr/pgsql-10/bin/postgresql-10-setup initdb
-      args:
-        creates: /var/lib/pgsql/10/data/postgresql.conf
+      - name: "PostgreSQL: Initialize data directory"
+        command: /usr/pgsql-10/bin/postgresql-10-setup initdb
+        args:
+          creates: /var/lib/pgsql/10/data/postgresql.conf
 
-    - name: "PostgreSQL: Set up pg_hba.conf"
+      - name: "PostgreSQL: Set up pg_hba.conf"
+        block:
+
+          - name: "PostgreSQL: pg_hba.conf use local_users map for socket connections"
+            replace:
+              path: /var/lib/pgsql/10/data/pg_hba.conf
+              regexp: '^(local\s+.*\s+peer$)'
+              replace: '\1 map=local_users'
+
+          - name: "PostgreSQL: pg_hba.conf use md5 for tcp connections"
+            replace:
+              path: /var/lib/pgsql/10/data/pg_hba.conf
+              regexp: '^(host\s+all\s+all\s+.*\s+)ident$'
+              replace: '\1md5'
+
+      - name: "PostgreSQL: Set up pg_ident.conf"
+        block:
+
+          - name: "PostgreSQL: pg_ident.conf local_users map postgres system user to postgres database user"
+            lineinfile:
+              path: /var/lib/pgsql/10/data/pg_ident.conf
+              line: "local_users     postgres                postgres"
+
+          - name: "PostgreSQL: pg_ident.conf local_users map root system user to postgres database user"
+            lineinfile:
+              path: /var/lib/pgsql/10/data/pg_ident.conf
+              line: "local_users     root                    postgres"
+
+          - name: "PostgreSQL: pg_ident.conf local_users map root system user to dhis database user"
+            lineinfile:
+              path: /var/lib/pgsql/10/data/pg_ident.conf
+              line: "local_users     root                    dhis"
+
+      - name: "PostgreSQL: Start service and enable to start on boot"
+        service:
+          name: postgresql-10
+          state: started
+
+      - name: "PostgreSQL: Wait for service to start"
+        wait_for:
+          port: 5432
+
+      - name: "PostgreSQL: dhis user"
+        postgresql_user:
+          name: dhis
+          encrypted: yes
+          password: "{{ lookup('password', '/tmp/pg_dhis_passwd.txt chars=ascii_letters,digits') }}"
+
+      - name: "PostgreSQL: dhis2 database"
+        postgresql_db:
+          name: dhis2
+          owner: dhis
+
+      - name: "PostgreSQL: dhis2 database, public schema"
+        postgresql_schema:
+          database: dhis2
+          name: public
+          owner: dhis
+
+    - name: "Tomcat and DHIS2"
+      tags: [ "tomcat", "dhis2" ]
       block:
 
-        - name: "PostgreSQL: pg_hba.conf use local_users map for socket connections"
-          replace:
-            path: /var/lib/pgsql/10/data/pg_hba.conf
-            regexp: '^(local\s+.*\s+peer$)'
-            replace: '\1 map=local_users'
+      - name: "Tomcat: install packages"
+        yum:
+          name: "{{ item }}"
+          state: present
+        with_items:
+          - tomcat
+          - tomcat-native
 
-        - name: "PostgreSQL: pg_hba.conf use md5 for tcp connections"
-          replace:
-            path: /var/lib/pgsql/10/data/pg_hba.conf
-            regexp: '^(host\s+all\s+all\s+.*\s+)ident$'
-            replace: '\1md5'
+      - name: "Tomcat: Enable to start on boot"
+        service:
+          name: tomcat
+          enabled: true
 
-    - name: "PostgreSQL: Set up pg_ident.conf"
+      # Configure Tomcat for '/dev/urandom' -- see https://wiki.apache.org/tomcat/HowTo/FasterStartUp#Entropy_Source
+      - name: "Tomcat: Use /dev/urandom for the entropy source "
+        lineinfile:
+          path: "{{ item }}"
+          line: "JAVA_OPTS=\"-Djava.security.egd=file:/dev/./urandom\""
+        with_items:
+          - /etc/sysconfig/tomcat
+          - /etc/tomcat/tomcat.conf
+
+      - name: "DHIS2: Create DHIS2_HOME directory /opt/dhis2"
+        file:
+          path: /opt/dhis2
+          state: directory
+          owner: tomcat
+          group: tomcat
+
+      - name: "DHIS2: Configuration file /opt/dhis2/dhis.conf with database credentials"
+        copy:
+          dest: /opt/dhis2/dhis.conf
+          owner: tomcat
+          group: tomcat
+          backup: yes
+          content: |
+            connection.dialect = org.hibernate.dialect.PostgreSQLDialect
+            connection.driver_class = org.postgresql.Driver
+            connection.url = jdbc:postgresql:dhis2
+            connection.username = dhis
+            connection.password = {{ lookup('password', '/tmp/pg_dhis_passwd.txt chars=ascii_letters,digits') }}
+            connection.schema = update
+
+      - name: "DHIS2: Download DHIS2 {{dhis2_version}} war file to Tomcat webapps"
+        get_url:
+          url: "https://s3-eu-west-1.amazonaws.com/releases.dhis2.org/{{ dhis2_version }}/dhis.war"
+          dest: /var/lib/tomcat/webapps/ROOT.war
+          owner: tomcat
+          group: tomcat
+
+      - name: "DHIS2: Create directory to unarchive dhis.war into"
+        file:
+          path: /var/lib/tomcat/webapps/ROOT
+          state: directory
+          owner: tomcat
+          group: tomcat
+
+      - name: "DHIS2: Unarchive dhis.war"
+        unarchive:
+          src: /var/lib/tomcat/webapps/ROOT.war
+          dest: /var/lib/tomcat/webapps/ROOT/
+          creates: "/var/lib/tomcat/webapps/ROOT/WEB-INF/lib/dhis-service-core-{{ dhis2_version }}.jar"
+          owner: tomcat
+          group: tomcat
+
+      - name: "Tomcat: Start service"
+        service:
+          name: tomcat
+          state: started
+
+    - name: "Nginx"
+      tags: [ "nginx" ]
       block:
 
-        - name: "PostgreSQL: pg_ident.conf local_users map postgres system user to postgres database user"
+      - name: "Nginx: install package"
+        yum:
+          name: nginx
+          state: present
+
+      - name: "Nginx: Configure proxy to Tomcat"
+        block:
+
+        - name: "Nginx: proxy_pass"
           lineinfile:
-            path: /var/lib/pgsql/10/data/pg_ident.conf
-            line: "local_users     postgres                postgres"
+            path: /etc/nginx/nginx.conf
+            insertafter: '^[^#]\s+location\s+/\s+{'
+            line: '          proxy_pass  http://localhost:8080;'
+            validate: nginx -c %s -t
 
-        - name: "PostgreSQL: pg_ident.conf local_users map root system user to postgres database user"
+        - name: "Nginx: proxy_redirect"
           lineinfile:
-            path: /var/lib/pgsql/10/data/pg_ident.conf
-            line: "local_users     root                    postgres"
+            path: /etc/nginx/nginx.conf
+            insertafter: '^[^#]\s+proxy_pass\s+'
+            line: '          proxy_redirect  off;'
+            validate: nginx -c %s -t
 
-        - name: "PostgreSQL: pg_ident.conf local_users map root system user to dhis database user"
+        - name: "Nginx: proxy_set_header Host"
           lineinfile:
-            path: /var/lib/pgsql/10/data/pg_ident.conf
-            line: "local_users     root                    dhis"
+            path: /etc/nginx/nginx.conf
+            insertafter: '^[^#]\s+proxy_redirect\s+'
+            line: '          proxy_set_header  Host               $http_host;'
+            validate: nginx -c %s -t
 
-    - name: "PostgreSQL: Start service and enable to start on boot"
-      service:
-        name: postgresql-10
-        state: started
-        enabled: true
+        - name: "Nginx: proxy_set_header X-Forwarded-Proto"
+          lineinfile:
+            path: /etc/nginx/nginx.conf
+            insertafter: '^[^#]\s+proxy_set_header\s+Host\s+'
+            line: '          proxy_set_header  X-Forwarded-Proto  $scheme;'
+            validate: nginx -c %s -t
 
-    - name: "PostgreSQL: Wait for service to start"
-      wait_for:
-        port: 5432
-
-    - name: "PostgreSQL: dhis user"
-      postgresql_user:
-        name: dhis
-        encrypted: yes
-        password: "{{ lookup('password', '/tmp/pg_dhis_passwd.txt chars=ascii_letters,digits') }}"
-
-    - name: "PostgreSQL: dhis2 database"
-      postgresql_db:
-        name: dhis2
-        owner: dhis
-
-    - name: "PostgreSQL: dhis2 database, public schema"
-      postgresql_schema:
-        database: dhis2
-        name: public
-        owner: dhis
-
-    - name: "Tomcat: install packages"
-      yum:
-        name: "{{ item }}"
-        state: present
-      with_items:
-        - tomcat
-        - tomcat-native
-
-    # Configure Tomcat for '/dev/urandom' -- see https://wiki.apache.org/tomcat/HowTo/FasterStartUp#Entropy_Source
-    - name: "Tomcat: Use /dev/urandom for the entropy source "
-      lineinfile:
-        path: "{{ item }}"
-        line: "JAVA_OPTS=\"-Djava.security.egd=file:/dev/./urandom\""
-      with_items:
-        - /etc/sysconfig/tomcat
-        - /etc/tomcat/tomcat.conf
-
-    - name: "DHIS2: Create DHIS2_HOME directory /opt/dhis2"
-      file:
-        path: /opt/dhis2
-        state: directory
-        owner: tomcat
-        group: tomcat
-
-    - name: "DHIS2: Configuration file /opt/dhis2/dhis.conf with database credentials"
-      copy:
-        dest: /opt/dhis2/dhis.conf
-        owner: tomcat
-        group: tomcat
-        backup: yes
-        content: |
-          connection.dialect = org.hibernate.dialect.PostgreSQLDialect
-          connection.driver_class = org.postgresql.Driver
-          connection.url = jdbc:postgresql:dhis2
-          connection.username = dhis
-          connection.password = {{ lookup('password', '/tmp/pg_dhis_passwd.txt chars=ascii_letters,digits') }}
-          connection.schema = update
-
-    - name: "DHIS2: Download DHIS2 war file to Tomcat webapps"
-      get_url:
-        url: "https://s3-eu-west-1.amazonaws.com/releases.dhis2.org/{{ dhis2_version }}/dhis.war"
-        dest: /var/lib/tomcat/webapps/ROOT.war
-        owner: tomcat
-        group: tomcat
-
-    - name: "DHIS2: Create directory to unarchive dhis.war into"
-      file:
-        path: /var/lib/tomcat/webapps/ROOT
-        state: directory
-        owner: tomcat
-        group: tomcat
-
-    - name: "DHIS2: Unarchive dhis.war"
-      unarchive:
-        src: /var/lib/tomcat/webapps/ROOT.war
-        dest: /var/lib/tomcat/webapps/ROOT/
-        creates: "/var/lib/tomcat/webapps/ROOT/WEB-INF/lib/dhis-service-core-{{ dhis2_version }}.jar"
-        owner: tomcat
-        group: tomcat
-
-    - name: "Tomcat: Start service and enable to start on boot"
-      service:
-        name: tomcat
-        state: started
-        enabled: true
-
-    - name: "Nginx: install package"
-      yum:
-        name: nginx
-        state: present
-
-    - name: "Nginx: Configure proxy to Tomcat"
-      block:
-
-      - name: "Nginx: proxy_pass"
-        lineinfile:
-          path: /etc/nginx/nginx.conf
-          insertafter: '^[^#]\s+location\s+/\s+{'
-          line: '          proxy_pass  http://localhost:8080;'
-          validate: nginx -c %s -t
-
-      - name: "Nginx: proxy_redirect"
-        lineinfile:
-          path: /etc/nginx/nginx.conf
-          insertafter: '^[^#]\s+proxy_pass\s+'
-          line: '          proxy_redirect  off;'
-          validate: nginx -c %s -t
-
-      - name: "Nginx: proxy_set_header Host"
-        lineinfile:
-          path: /etc/nginx/nginx.conf
-          insertafter: '^[^#]\s+proxy_redirect\s+'
-          line: '          proxy_set_header  Host               $http_host;'
-          validate: nginx -c %s -t
-
-      - name: "Nginx: proxy_set_header X-Forwarded-Proto"
-        lineinfile:
-          path: /etc/nginx/nginx.conf
-          insertafter: '^[^#]\s+proxy_set_header\s+Host\s+'
-          line: '          proxy_set_header  X-Forwarded-Proto  $scheme;'
-          validate: nginx -c %s -t
-
-    - name: "Nginx: Start service and enable to start on boot"
-      service:
-        name: nginx
-        state: started
-        enabled: true
+      - name: "Nginx: Start service and enable to start on boot"
+        service:
+          name: nginx
+          state: started
+          enabled: true
