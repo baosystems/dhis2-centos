@@ -16,10 +16,41 @@ vagrant up
 
 Wait a while... then, you can browse http://127.0.0.1:8888/
 
-If you want to load your own db/version of DHIS 2:
+
+## Maintenance
+
+It is required to SSH into the Virtual Machine by running:
 
 ```bash
 vagrant ssh
+```
+
+### Clear out DHIS2 database
+
+```bash
+sudo -i
+systemctl tomcat stop
+dropdb -U dhis dhis2
+createdb -U postgres -O dhis dhis2
+logout
+```
+
+### Check DHIS2 logs
+
+```bash
+tail -f /opt/dhis2/logs/dhis.log
+```
+
+### Load different DHIS2 version
+
+```bash
+sudo -i
+systemctl tomcat stop
+cd /var/lib/tomcat/webapps
+rm -f ROOT.war
+rm -rf ROOT/
+wget -O ROOT.war https://url/to/DHIS2.war
+systemctl tomcat start
 ```
 
 ## Troubleshooting
