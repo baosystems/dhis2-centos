@@ -29,7 +29,7 @@ vagrant ssh
 
 ```bash
 sudo -i
-systemctl tomcat stop
+systemctl stop tomcat
 dropdb -U dhis dhis2
 createdb -U postgres -O dhis dhis2
 logout
@@ -45,12 +45,12 @@ tail -f /opt/dhis2/logs/dhis.log
 
 ```bash
 sudo -i
-systemctl tomcat stop
+systemctl stop tomcat
 cd /var/lib/tomcat/webapps
 rm -f ROOT.war
 rm -rf ROOT/
 wget -O ROOT.war https://url/to/DHIS2.war
-systemctl tomcat start
+systemctl start tomcat
 ```
 
 ## Troubleshooting
