@@ -215,6 +215,13 @@
       - name: "Nginx: Configure proxy to Tomcat"
         block:
 
+        - name: "Nginx: client_max_body_size 32m"
+          lineinfile:
+            path: /etc/nginx/nginx.conf
+            insertafter: '^[^#]\s+access_log\s+/var/log/nginx/access.log\s+main;\s+'
+            line: '    client_max_body_size 32m;'
+            validate: nginx -c %s -t
+            
         - name: "Nginx: proxy_pass"
           lineinfile:
             path: /etc/nginx/nginx.conf
