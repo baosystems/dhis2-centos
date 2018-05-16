@@ -23,12 +23,12 @@ It is required to SSH into the Virtual Machine by running:
 
 ```bash
 vagrant ssh
+sudo -i
 ```
 
 ### Clear out DHIS2 database
 
 ```bash
-sudo -i
 service tomcat stop
 psql -U dhis -d dhis2 -c "drop schema public cascade; create schema public;"
 logout
@@ -53,7 +53,6 @@ tail -f /opt/dhis2/logs/dhis.log
 ### Load different DHIS2 version
 
 ```bash
-sudo -i
 service tomcat stop
 cd /var/lib/tomcat/webapps
 rm -f ROOT.war
