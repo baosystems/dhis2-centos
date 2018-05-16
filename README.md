@@ -4,7 +4,7 @@ Install PostgreSQL, Tomcat, Nginx, and DHIS 2.29 on CentOS 7.
 
 # Using
 
-Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) and [Vagrant](https://www.vagrantup.com/downloads.html) for your platform. Then, in a terminal, navigate to this directory and run `vagrant up`. After provisioning is complete, DHIS2 will be accessible at [http://localhost:8888](http://localhost:8888).
+Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) and [Vagrant](https://www.vagrantup.com/downloads.html) for your platform. Then, in a terminal, navigate to this directory and run `vagrant up`. After provisioning is complete, DHIS2 will be accessible at [http://localhost:8080](http://localhost:8080).
 
 ## tl;dr
 
@@ -14,7 +14,7 @@ cd dhis2-centos
 vagrant up
 ```
 
-Wait a while... then, you can browse http://127.0.0.1:8888/
+Wait a while... then, you can browse http://127.0.0.1:8080
 
 
 ## Maintenance
