@@ -35,6 +35,16 @@ createdb -U postgres -O dhis dhis2
 logout
 ```
 
+### Load your own DHIS2 database
+
+Put your SQL file into the repository where you cloned it (on your host machine).
+Clear out database as described above.
+Shared files are in the `/vagrant` folder within the guest VM.
+
+```bash
+psql -U dhis -d dhis2 -f /vagrant/file.sql
+```
+
 ### Check DHIS2 logs
 
 ```bash
