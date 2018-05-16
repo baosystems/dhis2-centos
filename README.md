@@ -30,8 +30,7 @@ vagrant ssh
 ```bash
 sudo -i
 systemctl stop tomcat
-dropdb -U dhis dhis2
-createdb -U postgres -O dhis dhis2
+psql -U dhis -d dhis2 -c "drop schema public cascade; create schema public;"
 logout
 ```
 
@@ -62,6 +61,9 @@ rm -rf ROOT/
 wget -O ROOT.war https://url/to/DHIS2.war
 systemctl start tomcat
 ```
+
+alternatively, edit `main.yml` to e.g. `dhis2_version: 2.28`
+
 
 ## Troubleshooting
 
