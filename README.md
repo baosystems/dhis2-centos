@@ -29,7 +29,7 @@ vagrant ssh
 
 ```bash
 sudo -i
-systemctl stop tomcat
+service tomcat stop
 psql -U dhis -d dhis2 -c "drop schema public cascade; create schema public;"
 logout
 ```
@@ -54,15 +54,16 @@ tail -f /opt/dhis2/logs/dhis.log
 
 ```bash
 sudo -i
-systemctl stop tomcat
+service tomcat stop
 cd /var/lib/tomcat/webapps
 rm -f ROOT.war
 rm -rf ROOT/
 wget -O ROOT.war https://url/to/DHIS2.war
-systemctl start tomcat
+service tomcat start
 ```
 
 alternatively, edit `main.yml` to e.g. `dhis2_version: 2.28`
+and run `vagrant --provision` to re-setup.
 
 
 ## Troubleshooting
