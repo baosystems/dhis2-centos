@@ -1,6 +1,10 @@
 # About
 
-Install PostgreSQL, Tomcat, Nginx, and DHIS 2.29 on CentOS 7.
+Install PostgreSQL, Tomcat, Nginx, and DHIS 2.30 on CentOS 7.
+
+# _WARNING_
+
+**Do not use this configuration in any production workloads!** Configurations are intended for local development environments _only!_
 
 # Using
 
@@ -30,7 +34,7 @@ sudo -i
 
 ```bash
 service tomcat stop
-psql -U dhis -d dhis2 -c "drop schema public cascade; create schema public;"
+psql -U dhis -d dhis2 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 logout
 ```
 
@@ -57,11 +61,11 @@ service tomcat stop
 cd /var/lib/tomcat/webapps
 rm -f ROOT.war
 rm -rf ROOT/
-wget -O ROOT.war https://url/to/DHIS2.war
+wget -O ROOT.war "https://s3-eu-west-1.amazonaws.com/releases.dhis2.org/2.29/dhis.war"
 service tomcat start
 ```
 
-alternatively, edit `main.yml` to e.g. `dhis2_version: 2.28`
+alternatively, edit `main.yml` to e.g. `dhis2_version: 2.29`
 and run `vagrant --provision` to re-setup.
 
 
