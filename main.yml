@@ -200,7 +200,7 @@
         unarchive:
           src: /var/lib/tomcat/webapps/ROOT.war
           dest: /var/lib/tomcat/webapps/ROOT/
-          creates: "/var/lib/tomcat/webapps/ROOT/WEB-INF/lib/dhis-service-core-{{ dhis2_version }}.jar"
+          creates: /var/lib/tomcat/webapps/ROOT/WEB-INF/web.xml
           owner: tomcat
           group: tomcat
 
