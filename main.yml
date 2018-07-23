@@ -1,7 +1,7 @@
 ---
 - hosts: all
   vars:
-    dhis2_version: 2.29
+    dhis2_version: '2.30'
   become: yes
 
   tasks:
@@ -70,49 +70,55 @@
         args:
           creates: /var/lib/pgsql/10/data/postgresql.conf
 
+      - name: "PostgreSQL: Set up postgresql.conf"
+        copy:
+          src: files/postgresql/postgresql.conf
+          dest: /var/lib/pgsql/10/data/postgresql.conf
+          owner: postgres
+          group: postgres
+          backup: yes
+        register: postgresql_conf
+
       - name: "PostgreSQL: Set up pg_hba.conf"
-        block:
-
-          - name: "PostgreSQL: pg_hba.conf use local_users map for socket connections"
-            replace:
-              path: /var/lib/pgsql/10/data/pg_hba.conf
-              regexp: '^(local\s+.*\s+peer$)'
-              replace: '\1 map=local_users'
-
-          - name: "PostgreSQL: pg_hba.conf use md5 for tcp connections"
-            replace:
-              path: /var/lib/pgsql/10/data/pg_hba.conf
-              regexp: '^(host\s+all\s+all\s+.*\s+)ident$'
-              replace: '\1md5'
+        copy:
+          src: files/postgresql/pg_hba.conf
+          dest: /var/lib/pgsql/10/data/pg_hba.conf
+          owner: postgres
+          group: postgres
+          backup: yes
+        register: pghba_conf
 
       - name: "PostgreSQL: Set up pg_ident.conf"
-        block:
-
-          - name: "PostgreSQL: pg_ident.conf local_users map postgres system user to postgres database user"
-            lineinfile:
-              path: /var/lib/pgsql/10/data/pg_ident.conf
-              line: "local_users     postgres                postgres"
-
-          - name: "PostgreSQL: pg_ident.conf local_users map root system user to postgres database user"
-            lineinfile:
-              path: /var/lib/pgsql/10/data/pg_ident.conf
-              line: "local_users     root                    postgres"
-
-          - name: "PostgreSQL: pg_ident.conf local_users map root system user to dhis database user"
-            lineinfile:
-              path: /var/lib/pgsql/10/data/pg_ident.conf
-              line: "local_users     root                    dhis"
+        copy:
+          src: files/postgresql/pg_ident.conf
+          dest: /var/lib/pgsql/10/data/pg_ident.conf
+          owner: postgres
+          group: postgres
+          backup: yes
+        register: pgident_conf
 
       - name: "PostgreSQL: Start service and enable to start on boot"
         service:
           name: postgresql-10
           state: started
 
+      - name: Restart PostgreSQL (if config file(s) changed)
+        service:
+          name: postgresql-10
+          state: restarted
+        when: postgresql_conf.changed or pghba_conf.changed or pgident_conf.changed
+
       - name: "PostgreSQL: Wait for service to start"
         wait_for:
           port: 5432
 
-      - name: "PostgreSQL: dhis user"
+      - name: "PostgreSQL: add password to 'postgres' user"
+        postgresql_user:
+          name: postgres
+          encrypted: yes
+          password: "{{ lookup('password', '/tmp/pg_postgres_passwd.txt chars=ascii_letters,digits') }}"
+
+      - name: "PostgreSQL: 'dhis' user"
         postgresql_user:
           name: dhis
           encrypted: yes
@@ -221,7 +227,7 @@
             insertafter: '^[^#]\s+access_log\s+/var/log/nginx/access.log\s+main;\s+'
             line: '    client_max_body_size 32m;'
             validate: nginx -c %s -t
-            
+
         - name: "Nginx: proxy_pass"
           lineinfile:
             path: /etc/nginx/nginx.conf
