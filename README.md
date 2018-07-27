@@ -64,8 +64,8 @@ wget -O ROOT.war "https://s3-eu-west-1.amazonaws.com/releases.dhis2.org/2.29/dhi
 service tomcat start
 ```
 
-alternatively, edit `main.yml` to e.g. `dhis2_version: 2.29`
-and run `vagrant --provision` to re-setup.
+Alternatively, open `Vagrantfile` in a text editor, edit the line containing `ansible.extra_vars`, specify the version you want, save the file, and then run `vagrant --provision` to re-setup.
+
 
 ## Troubleshooting
 
@@ -75,7 +75,3 @@ ansible local provisioner:
 ```
 
 If you get an error about settings, make sure you have the latest versions of both Vagrant (2.0 or higher) and VirtualBox (5.2 or higher) installed.
-
-# Change DHIS2 Version
-
-If you do not wish to use the version of DHIS2 installed, open `Vagrantfile`, edit the line containing `ansible.extra_vars`, specify the version you want, save the file, and then proceed with provisioning.
