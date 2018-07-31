@@ -135,6 +135,16 @@
           name: public
           owner: dhis
 
+      - name: "PostgreSQL: Install postgis"
+        yum:
+          name: postgis2_10
+          state: present
+      
+      - name: "PostgreSQL: Set up postgis extension"
+        become: true
+        become_user: postgres
+        command: "psql -d dhis2 -f files/postgresql/postgis.sql"
+
     - name: "Tomcat and DHIS2"
       tags: [ "tomcat", "dhis2" ]
       block:
