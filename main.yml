@@ -248,7 +248,7 @@
               --field-separator='|' \
               --dbname="dhis2" \
               --command="\dx" \
-            | grep -q -E '^postgis\|[0-9.]+\|postgis\|'
+            | grep -q -E '^postgis\|[0-9.]+[^\|]*\|postgis\|'
           args:
             warn: no
           ignore_errors: yes
