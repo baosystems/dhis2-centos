@@ -1,16 +1,18 @@
-# About
+# dhis2-centos
+
+> Get quickly up and running with DHIS2 running in a self-contained Virtual Machine
+
+## About
 
 Install PostgreSQL, Tomcat, Nginx, and DHIS 2.30 on CentOS 7.
 
-# _WARNING_
+## _WARNING_
 
 **Do not use this configuration in any production workloads!** Configurations are intended for local development environments _only!_
 
-# Using
-
-Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) and [Vagrant](https://www.vagrantup.com/downloads.html) for your platform. Then, in a terminal, navigate to this directory and run `vagrant up`. After provisioning is complete, DHIS2 will be accessible at [http://localhost:8080](http://localhost:8080).
-
 ## tl;dr
+
+Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) and [Vagrant](https://www.vagrantup.com/downloads.html) for your platform. Then, in a terminal, navigate to this directory and run `vagrant up`. After provisioning is complete, DHIS2 will be accessible at [http://localh$
 
 ```bash
 git clone https://github.com/baosystems/dhis2-centos.git
@@ -18,7 +20,7 @@ cd dhis2-centos
 vagrant up
 ```
 
-Wait a while... then, you can browse http://127.0.0.1:8080
+Wait a while... then, you can browse http://localhost:8080 - when you are done, do a `vagrant halt` to shut down the VM again.
 
 ## Maintenance
 
@@ -69,9 +71,24 @@ Alternatively, open `Vagrantfile` in a text editor, edit the line containing `an
 
 ## Troubleshooting
 
+### Updating VirtualBox and Vagrant
+
 ```
 ansible local provisioner:
 * The following settings shouldn't exist: become
 ```
 
 If you get an error about settings, make sure you have the latest versions of both Vagrant (2.0 or higher) and VirtualBox (5.2 or higher) installed.
+
+
+### Out Of Memory Error
+
+```
+OutOfMemoryError: GC overhead limit exceeded
+```
+
+If you see this in `dhis.log` and you have enough RAM on your computer (8 GB or more), you can increase the memory allocated to the Virtual Machine:
+
+* `vagrant halt`
+* in `Vagrantfile`, replace `2048` with `4096` to e.g. give it 4 GB
+* `vagrant up`
