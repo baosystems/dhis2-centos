@@ -87,8 +87,17 @@ If you get an error about settings, make sure you have the latest versions of bo
 OutOfMemoryError: GC overhead limit exceeded
 ```
 
-If you see this in `dhis.log` and you have enough RAM on your computer (8 GB or more), you can increase the memory allocated to the Virtual Machine:
+If you see this in `dhis.log` and you have enough RAM on your computer (8 GB or more), you can increase the memory allocated to the Virtual Machine and Tomcat:
 
 * `vagrant halt`
 * in `Vagrantfile`, replace `2048` with `4096` to e.g. give it 4 GB
 * `vagrant up`
+
+
+Add the following to the end of `/etc/sysconfig/tomcat`:
+
+```
+JAVA_OPTS="-Djava.security.egd=file:/dev/./urandom -Xmx1700m -Xms1000m"
+```
+
+Then restart Tomcat.
