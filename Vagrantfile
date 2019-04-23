@@ -23,7 +23,7 @@ Vagrant.configure(2) do |config|
     ansible.compatibility_mode = '2.0'
     ansible.playbook = 'main.yml'
     ansible.verbose = false
-    #ansible.extra_vars = { dhis2_version: "2.30" }
+    #ansible.extra_vars = { dhis2_version: "2.31" }
   end
 
   config.vm.network 'forwarded_port', guest: 5432, host: 5432,

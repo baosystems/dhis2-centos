@@ -1,7 +1,7 @@
 ---
 - hosts: all
   vars:
-    dhis2_version: '2.30'
+    dhis2_version: '2.31'
   become: yes
 
   tasks:
@@ -13,72 +13,62 @@
 
     - name: Ansible module support
       yum:
-        name: "{{ item }}"
+        name:
+          - python-psycopg2
+          - unzip
         state: present
-      with_items:
-        - python-psycopg2
-        - unzip
 
     - name: "PostgreSQL"
       tags: [ "postgresql" ]
       block:
 
-      - name: "PostgreSQL: PGDG 10 repository section"
+      - name: "PostgreSQL: PGDG repository section"
         block:
 
-        - name: "PostgreSQL: Check if pgdg-centos10 package is installed"
-          shell: rpm -q pgdg-centos10
+        - name: "PostgreSQL: Check if pgdg-redhat-repo package is installed"
+          shell: rpm -q pgdg-redhat-repo
           args:
             warn: no
           ignore_errors: yes
           changed_when: False
           register: pgdg_rpm_check
 
-        - name: "PostgreSQL: PGDG 10 repository file"
-          yum_repository:
-            name: pgdg10
-            file: pgdg-10-centos
-            description: PostgreSQL 10 $releasever - $basearch
-            baseurl: https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-$releasever-$basearch
-            gpgcheck: 1
+        - name: "PostgreSQL: PGDG repository release package"
+          yum:
+            name: https://download.postgresql.org/pub/repos/yum/11/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+            state: present
           when: pgdg_rpm_check.rc == 1
 
-        - name: "PostgreSQL: PGDG 10 repository signing key"
+        - name: "PostgreSQL: PGDG repository signing key"
           rpm_key:
             key: https://download.postgresql.org/pub/repos/yum/RPM-GPG-KEY-PGDG
             state: present
           when: pgdg_rpm_check.rc == 1
 
-        - name: "PostgreSQL: PGDG 10 repository release package"
-          yum:
-            name: pgdg-centos10
-            state: present
-          when: pgdg_rpm_check.rc == 1
-
-      - name: "PostgreSQL: Install PostgreSQL 10 server package"
+      - name: "PostgreSQL: Install PostgreSQL 11 server package"
         yum:
-          name: postgresql10-server
+          name: postgresql11-server
           state: present
 
       - name: "PostgreSQL: Install PostGIS"
         yum:
-          name: postgis2_10
+          name: postgis2_11
           state: present
 
       - name: "PostgreSQL: Enable to start on boot"
         service:
-          name: postgresql-10
+          name: postgresql-11
           enabled: true
 
       - name: "PostgreSQL: Initialize data directory"
-        command: /usr/pgsql-10/bin/postgresql-10-setup initdb
+        command: /usr/pgsql-11/bin/postgresql-11-setup initdb
         args:
-          creates: /var/lib/pgsql/10/data/postgresql.conf
+          creates: /var/lib/pgsql/11/data/postgresql.conf
 
       - name: "PostgreSQL: Set up postgresql.conf"
         copy:
           src: files/postgresql/postgresql.conf
-          dest: /var/lib/pgsql/10/data/postgresql.conf
+          dest: /var/lib/pgsql/11/data/postgresql.conf
           owner: postgres
           group: postgres
           backup: yes
@@ -87,7 +77,7 @@
       - name: "PostgreSQL: Set up pg_hba.conf"
         copy:
           src: files/postgresql/pg_hba.conf
-          dest: /var/lib/pgsql/10/data/pg_hba.conf
+          dest: /var/lib/pgsql/11/data/pg_hba.conf
           owner: postgres
           group: postgres
           backup: yes
@@ -96,7 +86,7 @@
       - name: "PostgreSQL: Set up pg_ident.conf"
         copy:
           src: files/postgresql/pg_ident.conf
-          dest: /var/lib/pgsql/10/data/pg_ident.conf
+          dest: /var/lib/pgsql/11/data/pg_ident.conf
           owner: postgres
           group: postgres
           backup: yes
@@ -104,12 +94,12 @@
 
       - name: "PostgreSQL: Start service and enable to start on boot"
         service:
-          name: postgresql-10
+          name: postgresql-11
           state: started
 
       - name: Restart PostgreSQL (if config file(s) changed)
         service:
-          name: postgresql-10
+          name: postgresql-11
           state: restarted
         when: postgresql_conf.changed or pghba_conf.changed or pgident_conf.changed
 
@@ -365,7 +355,8 @@
 
       - name: "DHIS2: Download DHIS2 {{dhis2_version}} war file to Tomcat webapps"
         get_url:
-          url: "https://s3-eu-west-1.amazonaws.com/releases.dhis2.org/{{ dhis2_version }}/dhis.war"
+          url: "https://s3.amazonaws.com/dhis2-builds/{{ dhis2_version }}/latest/dhis.war"
+          checksum: "sha256:https://s3.amazonaws.com/dhis2-builds/2.31/latest/dhis.war.sha256"
           dest: /var/lib/tomcat/webapps/ROOT.war
           owner: tomcat
           group: tomcat
