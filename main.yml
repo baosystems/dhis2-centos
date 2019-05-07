@@ -1,7 +1,7 @@
 ---
 - hosts: all
   vars:
-    dhis2_version: '2.31'
+    dhis2_version: '2.32'
   become: yes
 
   tasks:
@@ -18,8 +18,8 @@
           - unzip
         state: present
 
-    - name: "PostgreSQL"
-      tags: [ "postgresql" ]
+    - name: PostgreSQL
+      tags: postgresql
       block:
 
       - name: "PostgreSQL: PGDG repository section"
@@ -312,11 +312,10 @@
 
       - name: "Tomcat: install packages"
         yum:
-          name: "{{ item }}"
+          name:
+            - tomcat
+            - tomcat-native
           state: present
-        with_items:
-          - tomcat
-          - tomcat-native
 
       - name: "Tomcat: Enable to start on boot"
         service:
@@ -356,7 +355,7 @@
       - name: "DHIS2: Download DHIS2 {{dhis2_version}} war file to Tomcat webapps"
         get_url:
           url: "https://s3.amazonaws.com/dhis2-builds/{{ dhis2_version }}/latest/dhis.war"
-          checksum: "sha256:https://s3.amazonaws.com/dhis2-builds/2.31/latest/dhis.war.sha256"
+          checksum: "sha256:https://s3.amazonaws.com/dhis2-builds/{{ dhis2_version }}/latest/dhis.war.sha256"
           dest: /var/lib/tomcat/webapps/ROOT.war
           owner: tomcat
           group: tomcat
@@ -381,8 +380,8 @@
           name: tomcat
           state: started
 
-    - name: "Nginx"
-      tags: [ "nginx" ]
+    - name: Nginx
+      tags: nginx
       block:
 
       - name: "Nginx: install package"

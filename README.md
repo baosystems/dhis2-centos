@@ -1,6 +1,6 @@
 # About
 
-Install PostgreSQL, Tomcat, Nginx, and DHIS 2.30 on CentOS 7.
+Install PostgreSQL, Tomcat, Nginx, and DHIS2 on CentOS 7.
 
 # _WARNING_
 
@@ -60,7 +60,7 @@ service tomcat stop
 cd /var/lib/tomcat/webapps
 rm -f ROOT.war
 rm -rf ROOT/
-wget -O ROOT.war "https://s3-eu-west-1.amazonaws.com/releases.dhis2.org/2.29/dhis.war"
+wget -O ROOT.war "https://s3-eu-west-1.amazonaws.com/releases.dhis2.org/2.32.0/dhis.war"
 service tomcat start
 ```
 
