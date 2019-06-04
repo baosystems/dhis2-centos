@@ -52,7 +52,7 @@
 
       - name: "PostgreSQL: Install PostGIS"
         yum:
-          name: postgis2_11
+          name: postgis25_11
           state: present
 
       - name: "PostgreSQL: Enable to start on boot"
