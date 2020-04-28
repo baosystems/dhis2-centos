@@ -92,7 +92,7 @@
           backup: false
         register: pgident_conf
 
-      - name: "PostgreSQL: Start service and enable to start on boot"
+      - name: "PostgreSQL: Start service"
         service:
           name: postgresql-11
           state: started
@@ -307,7 +307,9 @@
           when: pgdg_check_function_permissions.stdout != "0"
 
     - name: "Tomcat and DHIS2"
-      tags: [ "tomcat", "dhis2" ]
+      tags:
+        - dhis2
+        - tomcat
       block:
 
       - name: "Tomcat: install packages"
@@ -322,8 +324,8 @@
           name: tomcat
           enabled: true
 
-      # Configure Tomcat for '/dev/urandom' -- see https://wiki.apache.org/tomcat/HowTo/FasterStartUp#Entropy_Source
-      - name: "Tomcat: Use /dev/urandom for the entropy source "
+      # Configure entropy source for Tomcat SecureRandom (https://cwiki.apache.org/confluence/display/TOMCAT/HowTo+FasterStartUp#HowToFasterStartUp-EntropySource)
+      - name: "Tomcat: Use /dev/urandom for the entropy source"
         lineinfile:
           path: "{{ item }}"
           line: "JAVA_OPTS=\"-Djava.security.egd=file:/dev/./urandom\""
