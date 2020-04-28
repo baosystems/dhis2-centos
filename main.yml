@@ -2,7 +2,7 @@
 - hosts: all
   vars:
     dhis2_version: '2.32'
-  become: yes
+  become: true
 
   tasks:
 
@@ -28,9 +28,9 @@
         - name: "PostgreSQL: Check if pgdg-redhat-repo package is installed"
           shell: rpm -q pgdg-redhat-repo
           args:
-            warn: no
-          ignore_errors: yes
-          changed_when: False
+            warn: false
+          ignore_errors: true
+          changed_when: false
           register: pgdg_rpm_check
 
         - name: "PostgreSQL: PGDG repository release package"
@@ -71,7 +71,7 @@
           dest: /var/lib/pgsql/11/data/postgresql.conf
           owner: postgres
           group: postgres
-          backup: yes
+          backup: false
         register: postgresql_conf
 
       - name: "PostgreSQL: Set up pg_hba.conf"
@@ -80,7 +80,7 @@
           dest: /var/lib/pgsql/11/data/pg_hba.conf
           owner: postgres
           group: postgres
-          backup: yes
+          backup: false
         register: pghba_conf
 
       - name: "PostgreSQL: Set up pg_ident.conf"
@@ -89,7 +89,7 @@
           dest: /var/lib/pgsql/11/data/pg_ident.conf
           owner: postgres
           group: postgres
-          backup: yes
+          backup: false
         register: pgident_conf
 
       - name: "PostgreSQL: Start service and enable to start on boot"
@@ -110,13 +110,13 @@
       - name: "PostgreSQL: add password to 'postgres' user"
         postgresql_user:
           name: postgres
-          encrypted: yes
+          encrypted: true
           password: "{{ lookup('password', '/tmp/pg_postgres_passwd.txt chars=ascii_letters,digits') }}"
 
       - name: "PostgreSQL: 'dhis' user"
         postgresql_user:
           name: dhis
-          encrypted: yes
+          encrypted: true
           password: "{{ lookup('password', '/tmp/pg_dhis_passwd.txt chars=ascii_letters,digits') }}"
 
       - name: "PostgreSQL: 'dhis2' database"
@@ -148,9 +148,9 @@
               --command="SELECT rs.setconfig FROM pg_db_role_setting rs LEFT JOIN pg_roles r ON r.oid = rs.setrole LEFT JOIN pg_database d ON d.oid = rs.setdatabase WHERE r.rolname = 'dhis' OR d.datname = 'dhis2';" \
             | grep -q -E '(=|,\s*)postgis("|,)'
           args:
-            warn: no
-          ignore_errors: yes
-          changed_when: False
+            warn: false
+          ignore_errors: true
+          changed_when: false
           register: pgdg_check_search_path
 
         - name: "PostgreSQL: 'ALTER DATABASE dhis2 SET search_path TO public,postgis;'"
@@ -170,9 +170,9 @@
               --command="SELECT defaclacl FROM pg_default_acl a JOIN pg_namespace b ON a.defaclnamespace=b.oid WHERE nspname = 'postgis' AND defaclobjtype = 'r';" \
             | grep -q 'dhis=r/postgres'
           args:
-            warn: no
-          ignore_errors: yes
-          changed_when: False
+            warn: false
+          ignore_errors: true
+          changed_when: false
           register: pgdg_check_defaults_tables
 
         - name: "PostgreSQL: 'ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT SELECT ON TABLES TO dhis;'"
@@ -193,9 +193,9 @@
               --command="SELECT defaclacl FROM pg_default_acl a JOIN pg_namespace b ON a.defaclnamespace=b.oid WHERE nspname = 'postgis' AND defaclobjtype = 'S';" \
             | grep -q 'dhis=rU/postgres'
           args:
-            warn: no
-          ignore_errors: yes
-          changed_when: False
+            warn: false
+          ignore_errors: true
+          changed_when: false
           register: pgdg_check_defaults_sequences
 
         - name: "PostgreSQL: 'ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT USAGE, SELECT ON SEQUENCES TO dhis;'"
@@ -216,9 +216,9 @@
               --command="SELECT defaclacl FROM pg_default_acl a JOIN pg_namespace b ON a.defaclnamespace=b.oid WHERE nspname = 'postgis' AND defaclobjtype = 'f';" \
             | grep -q 'dhis=X/postgres'
           args:
-            warn: no
-          ignore_errors: yes
-          changed_when: False
+            warn: false
+          ignore_errors: true
+          changed_when: false
           register: pgdg_check_defaults_functions
 
         - name: "PostgreSQL: 'ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT EXECUTE ON FUNCTIONS TO dhis;'"
@@ -240,9 +240,9 @@
               --command="\dx" \
             | grep -q -E '^postgis\|[0-9.]+[^\|]*\|postgis\|'
           args:
-            warn: no
-          ignore_errors: yes
-          changed_when: False
+            warn: false
+          ignore_errors: true
+          changed_when: false
           register: pgdg_check_extension_postgis
 
         - name: "PostgreSQL: 'CREATE EXTENSION postgis WITH SCHEMA postgis;'"
@@ -293,9 +293,9 @@
             | grep -v 'dhis=X/postgres' \
             | wc -l
           args:
-            warn: no
-          ignore_errors: yes
-          changed_when: False
+            warn: false
+          ignore_errors: true
+          changed_when: false
           register: pgdg_check_function_permissions
 
         - name: "PostgreSQL: 'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA postgis TO dhis;'"
@@ -343,7 +343,7 @@
           dest: /opt/dhis2/dhis.conf
           owner: tomcat
           group: tomcat
-          backup: yes
+          backup: false
           content: |
             connection.dialect = org.hibernate.dialect.PostgreSQLDialect
             connection.driver_class = org.postgresql.Driver
