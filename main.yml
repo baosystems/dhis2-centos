@@ -1,7 +1,7 @@
 ---
 - hosts: all
   vars:
-    dhis2_version: '2.32'
+    dhis2_version: '2.33.3'
   become: true
 
   tasks:
