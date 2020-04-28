@@ -325,11 +325,9 @@
       # Configure entropy source for Tomcat SecureRandom (https://cwiki.apache.org/confluence/display/TOMCAT/HowTo+FasterStartUp#HowToFasterStartUp-EntropySource)
       - name: "Tomcat: Use /dev/urandom for the entropy source"
         lineinfile:
-          path: "{{ item }}"
-          line: "JAVA_OPTS=\"-Djava.security.egd=file:/dev/./urandom\""
-        with_items:
-          - /etc/sysconfig/tomcat
-          - /etc/tomcat/tomcat.conf
+          path: /etc/tomcat/conf.d/entropy.conf
+          create: true
+          line: 'JAVA_OPTS="$JAVA_OPTS -Djava.security.egd=file:/dev/./urandom"'
 
       - name: "DHIS2: Create DHIS2_HOME directory /opt/dhis2"
         file:
