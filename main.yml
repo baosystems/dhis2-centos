@@ -51,9 +51,12 @@
           state: present
 
       - name: "PostgreSQL: Install PostGIS"
-        yum:
-          name: postgis25_11
-          state: present
+        command: |
+          yum --assumeyes install --setopt="epel.exclude=postgis" postgis
+        args:
+          warn: false
+        register: yum_install_postgis
+        changed_when: "'Nothing to do' not in yum_install_postgis.stdout"
 
       - name: "PostgreSQL: Enable to start on boot"
         service:
