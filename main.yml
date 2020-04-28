@@ -35,7 +35,7 @@
 
         - name: "PostgreSQL: PGDG repository release package"
           yum:
-            name: https://download.postgresql.org/pub/repos/yum/11/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+            name: https://download.postgresql.org/pub/repos/yum/12/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
             state: present
           when: pgdg_rpm_check.rc == 1
 
@@ -45,9 +45,9 @@
             state: present
           when: pgdg_rpm_check.rc == 1
 
-      - name: "PostgreSQL: Install PostgreSQL 11 server package"
+      - name: "PostgreSQL: Install PostgreSQL 12 server package"
         yum:
-          name: postgresql11-server
+          name: postgresql12-server
           state: present
 
       - name: "PostgreSQL: Install PostGIS"
@@ -60,18 +60,18 @@
 
       - name: "PostgreSQL: Enable to start on boot"
         service:
-          name: postgresql-11
+          name: postgresql-12
           enabled: true
 
       - name: "PostgreSQL: Initialize data directory"
-        command: /usr/pgsql-11/bin/postgresql-11-setup initdb
+        command: /usr/pgsql-12/bin/postgresql-12-setup initdb
         args:
-          creates: /var/lib/pgsql/11/data/postgresql.conf
+          creates: /var/lib/pgsql/12/data/postgresql.conf
 
       - name: "PostgreSQL: Set up postgresql.conf"
         copy:
           src: files/postgresql/postgresql.conf
-          dest: /var/lib/pgsql/11/data/postgresql.conf
+          dest: /var/lib/pgsql/12/data/postgresql.conf
           owner: postgres
           group: postgres
           backup: false
@@ -80,7 +80,7 @@
       - name: "PostgreSQL: Set up pg_hba.conf"
         copy:
           src: files/postgresql/pg_hba.conf
-          dest: /var/lib/pgsql/11/data/pg_hba.conf
+          dest: /var/lib/pgsql/12/data/pg_hba.conf
           owner: postgres
           group: postgres
           backup: false
@@ -89,7 +89,7 @@
       - name: "PostgreSQL: Set up pg_ident.conf"
         copy:
           src: files/postgresql/pg_ident.conf
-          dest: /var/lib/pgsql/11/data/pg_ident.conf
+          dest: /var/lib/pgsql/12/data/pg_ident.conf
           owner: postgres
           group: postgres
           backup: false
@@ -97,12 +97,12 @@
 
       - name: "PostgreSQL: Start service"
         service:
-          name: postgresql-11
+          name: postgresql-12
           state: started
 
       - name: Restart PostgreSQL (if config file(s) changed)
         service:
-          name: postgresql-11
+          name: postgresql-12
           state: restarted
         when: postgresql_conf.changed or pghba_conf.changed or pgident_conf.changed
 
