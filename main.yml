@@ -312,11 +312,9 @@
         - tomcat
       block:
 
-      - name: "Tomcat: install packages"
-        yum:
-          name:
-            - tomcat
-            - tomcat-native
+      - name: "Tomcat: install package"
+        package:
+          name: tomcat
           state: present
 
       - name: "Tomcat: Enable to start on boot"
