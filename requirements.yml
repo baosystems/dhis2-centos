@@ -1,0 +1,3 @@
+---
+- src: git+https://bitbucket.org/baosystems/baosystems.tomcat
+  version: master

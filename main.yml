@@ -1,7 +1,9 @@
 ---
 - hosts: all
+
   vars:
-    dhis2_version: '2.33.3'
+    tomcat_install_method: source
+
   become: true
 
   tasks:
@@ -309,28 +311,14 @@
               --command="GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA postgis TO dhis;"
           when: pgdg_check_function_permissions.stdout != "0"
 
-    - name: "Tomcat and DHIS2"
-      tags:
-        - dhis2
-        - tomcat
+    - name: "Tomcat: Use the baosystems.tomcat role to install Tomcat"
+      tags: tomcat
+      include_role:
+        name: baosystems.tomcat
+
+    - name: "DHIS2"
+      tags: dhis2
       block:
-
-      - name: "Tomcat: install package"
-        package:
-          name: tomcat
-          state: present
-
-      - name: "Tomcat: Enable to start on boot"
-        service:
-          name: tomcat
-          enabled: true
-
-      # Configure entropy source for Tomcat SecureRandom (https://cwiki.apache.org/confluence/display/TOMCAT/HowTo+FasterStartUp#HowToFasterStartUp-EntropySource)
-      - name: "Tomcat: Use /dev/urandom for the entropy source"
-        lineinfile:
-          path: /etc/tomcat/conf.d/entropy.conf
-          create: true
-          line: 'JAVA_OPTS="$JAVA_OPTS -Djava.security.egd=file:/dev/./urandom"'
 
       - name: "DHIS2: Create DHIS2_HOME directory /opt/dhis2"
         file:
