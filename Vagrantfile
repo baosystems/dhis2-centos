@@ -32,7 +32,7 @@ Vagrant.configure(2) do |config|
       dhis2_version: "2.34.0",
       tomcat_parameter_xms: "256m",
       tomcat_parameter_xmx: "512m",
-      # tomcat_version: "8.5.54",
+      # tomcat_version: "8.5.55",
     }
   end
 
