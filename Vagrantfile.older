@@ -31,6 +31,7 @@ Vagrant.configure(2) do |config|
     ansible.extra_vars = {
       # This Vagrantfile supports 2.22 and down to 2.14
       dhis2_version: "2.22",
+      tomcat_connector_relaxedquerychars: "[]",
       tomcat_parameter_xms: "256m",
       tomcat_parameter_xmx: "512m",
     }
