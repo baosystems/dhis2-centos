@@ -18,8 +18,6 @@ Vagrant.configure(2) do |config|
     v.cpus = 2
   end
 
-  config.vm.provision 'prereq', type: 'shell', inline: 'yum -y install git'
-
   config.vm.provision 'setup', type: 'ansible_local' do |ansible|
     ansible.become = true
     ansible.compatibility_mode = '2.0'
@@ -33,7 +31,7 @@ Vagrant.configure(2) do |config|
       tomcat_connector_relaxedquerychars: "[]",
       tomcat_parameter_xms: "256m",
       tomcat_parameter_xmx: "512m",
-      # tomcat_version: "8.5.55",
+      # tomcat_version: "8.5.56",
     }
   end
 

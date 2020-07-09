@@ -9,12 +9,12 @@
   tasks:
 
     - name: EPEL release package
-      yum:
+      package:
         name: epel-release
         state: present
 
     - name: Ansible module support
-      yum:
+      package:
         name:
           - python-psycopg2
           - unzip
@@ -24,33 +24,27 @@
       tags: postgresql
       block:
 
-      - name: "PostgreSQL: PGDG repository section"
-        block:
+      - name: "PostgreSQL: Use the baosystems.postgresql role to install PostgreSQL."
+        include_role:
+          name: baosystems.postgresql
 
-        - name: "PostgreSQL: Check if pgdg-redhat-repo package is installed"
-          shell: rpm -q pgdg-redhat-repo
-          args:
-            warn: false
-          ignore_errors: true
-          changed_when: false
-          register: pgdg_rpm_check
+      - name: "PostgreSQL: Set up conf.d/50-dhis2.conf"
+        copy:
+          src: files/postgresql/50-dhis2.conf
+          dest: "/var/lib/pgsql/{{ postgresql_version }}/data/conf.d/50-dhis2.conf"
+          owner: postgres
+          group: postgres
+          backup: false
+        notify: restart postgresql
 
-        - name: "PostgreSQL: PGDG repository release package"
-          yum:
-            name: https://download.postgresql.org/pub/repos/yum/12/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
-            state: present
-          when: pgdg_rpm_check.rc == 1
-
-        - name: "PostgreSQL: PGDG repository signing key"
-          rpm_key:
-            key: https://download.postgresql.org/pub/repos/yum/RPM-GPG-KEY-PGDG
-            state: present
-          when: pgdg_rpm_check.rc == 1
-
-      - name: "PostgreSQL: Install PostgreSQL 12 server package"
-        yum:
-          name: postgresql12-server
-          state: present
+      - name: "PostgreSQL: Set up pg_ident.conf"
+        copy:
+          src: files/postgresql/pg_ident.conf
+          dest: "/var/lib/pgsql/{{ postgresql_version }}/data/pg_ident.conf"
+          owner: postgres
+          group: postgres
+          backup: false
+        notify: restart postgresql
 
       - name: "PostgreSQL: Install PostGIS"
         command: |
@@ -60,63 +54,13 @@
         register: yum_install_postgis
         changed_when: "'Nothing to do' not in yum_install_postgis.stdout"
 
-      - name: "PostgreSQL: Enable to start on boot"
-        service:
-          name: postgresql-12
-          enabled: true
-
-      - name: "PostgreSQL: Initialize data directory"
-        command: /usr/pgsql-12/bin/postgresql-12-setup initdb
-        args:
-          creates: /var/lib/pgsql/12/data/postgresql.conf
-
-      - name: "PostgreSQL: Set up postgresql.conf"
-        copy:
-          src: files/postgresql/postgresql.conf
-          dest: /var/lib/pgsql/12/data/postgresql.conf
-          owner: postgres
-          group: postgres
-          backup: false
-        register: postgresql_conf
-
-      - name: "PostgreSQL: Set up pg_hba.conf"
-        copy:
-          src: files/postgresql/pg_hba.conf
-          dest: /var/lib/pgsql/12/data/pg_hba.conf
-          owner: postgres
-          group: postgres
-          backup: false
-        register: pghba_conf
-
-      - name: "PostgreSQL: Set up pg_ident.conf"
-        copy:
-          src: files/postgresql/pg_ident.conf
-          dest: /var/lib/pgsql/12/data/pg_ident.conf
-          owner: postgres
-          group: postgres
-          backup: false
-        register: pgident_conf
-
-      - name: "PostgreSQL: Start service"
-        service:
-          name: postgresql-12
-          state: started
-
-      - name: Restart PostgreSQL (if config file(s) changed)
-        service:
-          name: postgresql-12
-          state: restarted
-        when: postgresql_conf.changed or pghba_conf.changed or pgident_conf.changed
+      - name: "PostgreSQL: flush_handlers before proceeding so the postgres user can connect over the socket."
+        meta: flush_handlers
+        when: "'Nothing to do' not in yum_install_postgis.stdout"
 
       - name: "PostgreSQL: Wait for service to start"
         wait_for:
           port: 5432
-
-      - name: "PostgreSQL: add password to 'postgres' user"
-        postgresql_user:
-          name: postgres
-          encrypted: true
-          password: "{{ lookup('password', '/tmp/pg_postgres_passwd.txt chars=ascii_letters,digits') }}"
 
       - name: "PostgreSQL: 'dhis' user"
         postgresql_user:
