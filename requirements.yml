@@ -1,6 +1,6 @@
 ---
 - name: baosystems.tomcat
-  src: https://bitbucket.org/baosystems/baosystems.tomcat/downloads/1.0.1.tar.gz
+  src: https://bitbucket.org/baosystems/baosystems.tomcat/downloads/1.0.2.tar.gz
 
 - src: geerlingguy.postgresql
   version: 2.2.1
