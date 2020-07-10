@@ -2,6 +2,7 @@
 - hosts: all
 
   vars:
+    postgresql_version: 12
     tomcat_install_method: source
 
   become: true
