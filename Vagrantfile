@@ -27,11 +27,11 @@ Vagrant.configure(2) do |config|
     ansible.playbook = 'main.yml'
     ansible.verbose = false
     ansible.extra_vars = {
-      dhis2_version: "2.34.0",
+      dhis2_version: "2.34.1",
       tomcat_connector_relaxedquerychars: "[]",
       tomcat_parameter_xms: "256m",
       tomcat_parameter_xmx: "512m",
-      # tomcat_version: "8.5.56",
+      # tomcat_version: "8.5.57",
     }
   end
 
