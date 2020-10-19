@@ -5,4 +5,4 @@
 - src: geerlingguy.postgresql
   version: 2.2.1
 - name: baosystems.postgresql
-  src: https://bitbucket.org/baosystems/baosystems.postgresql/downloads/1.0.3.tar.gz
+  src: https://bitbucket.org/baosystems/baosystems.postgresql/downloads/1.0.4.tar.gz
