@@ -1,11 +1,7 @@
 ---
-- src: geerlingguy.java
-  version: 1.10.0
 - name: baosystems.tomcat
-  src: https://bitbucket.org/baosystems/baosystems.tomcat/downloads/1.1.0.tar.gz
+  src: https://bitbucket.org/baosystems/baosystems.tomcat/downloads/1.3.0.tar.gz
 
-- src: geerlingguy.repo-epel
-  version: 1.3.0
 - src: geerlingguy.postgresql
   version: 2.2.1
 - name: baosystems.postgresql

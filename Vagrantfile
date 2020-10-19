@@ -1,5 +1,5 @@
 Vagrant.configure(2) do |config|
-  config.vm.box = 'bento/centos-7'
+  config.vm.box = 'centos/7'
 
   config.vm.provider 'virtualbox' do |v|
     v.memory = 2048
@@ -18,6 +18,8 @@ Vagrant.configure(2) do |config|
     v.cpus = 2
   end
 
+  config.vm.provision 'prereq', type: 'shell', inline: 'yum -y erase python-psycopg2'
+
   config.vm.provision 'setup', type: 'ansible_local' do |ansible|
     ansible.become = true
     ansible.compatibility_mode = '2.0'
@@ -27,11 +29,11 @@ Vagrant.configure(2) do |config|
     ansible.playbook = 'main.yml'
     ansible.verbose = false
     ansible.extra_vars = {
-      dhis2_version: "2.34.1",
+      dhis2_version: "2.35.0",
       tomcat_connector_relaxedquerychars: "[]",
       tomcat_parameter_xms: "256m",
       tomcat_parameter_xmx: "512m",
-      # tomcat_version: "8.5.57",
+      # tomcat_version: "8.5.59",
     }
   end
 
