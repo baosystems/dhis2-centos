@@ -18,8 +18,6 @@ Vagrant.configure(2) do |config|
     v.cpus = 2
   end
 
-  config.vm.provision 'prereq', type: 'shell', inline: 'yum -y erase python-psycopg2'
-
   config.vm.provision 'setup', type: 'ansible_local' do |ansible|
     ansible.become = true
     ansible.compatibility_mode = '2.0'

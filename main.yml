@@ -1,33 +1,25 @@
 ---
 - hosts: all
 
+  become: true
+
   vars:
-    postgresql_version: 12
+    postgresql_version: 13
     tomcat_install_method: source
 
-  become: true
+  roles:
+    - baosystems.postgresql
+    - baosystems.tomcat
 
   tasks:
 
-    - name: EPEL release package
-      package:
-        name: epel-release
-        state: present
-
     - name: Ansible module support
       package:
-        name:
-          - python-psycopg2
-          - unzip
-        state: present
+        name: unzip
 
     - name: PostgreSQL
       tags: postgresql
       block:
-
-      - name: "PostgreSQL: Use the baosystems.postgresql role to install PostgreSQL."
-        include_role:
-          name: baosystems.postgresql
 
       - name: "PostgreSQL: Set up conf.d/50-dhis2.conf"
         copy:
@@ -48,16 +40,12 @@
         notify: restart postgresql
 
       - name: "PostgreSQL: Install PostGIS"
-        command: |
-          yum --assumeyes install --setopt="epel.exclude=postgis" postgis
-        args:
-          warn: false
-        register: yum_install_postgis
-        changed_when: "'Nothing to do' not in yum_install_postgis.stdout"
+        package:
+          name: "postgis30_{{ postgresql_version }}"
+        notify: restart postgresql
 
       - name: "PostgreSQL: flush_handlers before proceeding so the postgres user can connect over the socket."
         meta: flush_handlers
-        when: "'Nothing to do' not in yum_install_postgis.stdout"
 
       - name: "PostgreSQL: Wait for service to start"
         wait_for:
@@ -256,12 +244,7 @@
               --command="GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA postgis TO dhis;"
           when: pgdg_check_function_permissions.stdout != "0"
 
-    - name: "Tomcat: Use the baosystems.tomcat role to install Tomcat"
-      tags: tomcat
-      include_role:
-        name: baosystems.tomcat
-
-    - name: "DHIS2"
+    - name: DHIS2
       tags: dhis2
       block:
 
@@ -309,17 +292,12 @@
           owner: tomcat
           group: tomcat
 
-      - name: "Tomcat: Start service"
-        service:
-          name: tomcat
-          state: started
-
     - name: Nginx
       tags: nginx
       block:
 
       - name: "Nginx: install package"
-        yum:
+        package:
           name: nginx
           state: present
 
