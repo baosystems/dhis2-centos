@@ -13,9 +13,6 @@
 
   tasks:
 
-    - name: Ansible module support
-      package:
-        name: unzip
 
     - name: PostgreSQL
       tags: postgresql
