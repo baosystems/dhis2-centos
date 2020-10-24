@@ -21,326 +21,326 @@
       tags: postgresql
       block:
 
-      - name: "PostgreSQL: Set up conf.d/50-dhis2.conf"
-        copy:
-          src: files/postgresql/50-dhis2.conf
-          dest: "/var/lib/pgsql/{{ postgresql_version }}/data/conf.d/50-dhis2.conf"
-          owner: postgres
-          group: postgres
-          backup: false
-        notify: restart postgresql
+        - name: "PostgreSQL: Set up conf.d/50-dhis2.conf"
+          copy:
+            src: files/postgresql/50-dhis2.conf
+            dest: "/var/lib/pgsql/{{ postgresql_version }}/data/conf.d/50-dhis2.conf"
+            owner: postgres
+            group: postgres
+            backup: false
+          notify: restart postgresql
 
-      - name: "PostgreSQL: Set up pg_ident.conf"
-        copy:
-          src: files/postgresql/pg_ident.conf
-          dest: "/var/lib/pgsql/{{ postgresql_version }}/data/pg_ident.conf"
-          owner: postgres
-          group: postgres
-          backup: false
-        notify: restart postgresql
+        - name: "PostgreSQL: Set up pg_ident.conf"
+          copy:
+            src: files/postgresql/pg_ident.conf
+            dest: "/var/lib/pgsql/{{ postgresql_version }}/data/pg_ident.conf"
+            owner: postgres
+            group: postgres
+            backup: false
+          notify: restart postgresql
 
-      - name: "PostgreSQL: Install PostGIS"
-        package:
-          name: "postgis30_{{ postgresql_version }}"
-        notify: restart postgresql
+        - name: "PostgreSQL: Install PostGIS"
+          package:
+            name: "postgis30_{{ postgresql_version }}"
+          notify: restart postgresql
 
-      - name: "PostgreSQL: flush_handlers before proceeding so the postgres user can connect over the socket."
-        meta: flush_handlers
+        - name: "PostgreSQL: flush_handlers before proceeding so the postgres user can connect over the socket."
+          meta: flush_handlers
 
-      - name: "PostgreSQL: Wait for service to start"
-        wait_for:
-          port: 5432
+        - name: "PostgreSQL: Wait for service to start"
+          wait_for:
+            port: 5432
 
-      - name: "PostgreSQL: 'dhis' user"
-        postgresql_user:
-          name: dhis
-          encrypted: true
-          password: "{{ lookup('password', '/tmp/pg_dhis_passwd.txt chars=ascii_letters,digits') }}"
+        - name: "PostgreSQL: 'dhis' user"
+          postgresql_user:
+            name: dhis
+            encrypted: true
+            password: "{{ lookup('password', '/tmp/pg_dhis_passwd.txt chars=ascii_letters,digits') }}"
 
-      - name: "PostgreSQL: 'dhis2' database"
-        postgresql_db:
-          name: dhis2
-          owner: dhis
+        - name: "PostgreSQL: 'dhis2' database"
+          postgresql_db:
+            name: dhis2
+            owner: dhis
 
-      - name: "PostgreSQL: 'dhis2' database, 'public' schema"
-        postgresql_schema:
-          database: dhis2
-          name: public
-          owner: dhis
-
-      - name: "PostgreSQL: PostGIS schema setup"
-        block:
-
-        - name: "PostgreSQL: 'dhis2' database, 'postgis' schema"
+        - name: "PostgreSQL: 'dhis2' database, 'public' schema"
           postgresql_schema:
             database: dhis2
-            name: postgis
-            owner: postgres
+            name: public
+            owner: dhis
 
-        - name: "PostgreSQL: Check database 'dhis2' value 'search_path'"
-          shell: |
-            psql \
-              --username="postgres" \
-              --tuples-only \
-              --no-align \
-              --command="SELECT rs.setconfig FROM pg_db_role_setting rs LEFT JOIN pg_roles r ON r.oid = rs.setrole LEFT JOIN pg_database d ON d.oid = rs.setdatabase WHERE r.rolname = 'dhis' OR d.datname = 'dhis2';" \
-            | grep -q -E '(=|,\s*)postgis("|,)'
-          args:
-            warn: false
-          ignore_errors: true
-          changed_when: false
-          register: pgdg_check_search_path
+        - name: "PostgreSQL: PostGIS schema setup"
+          block:
 
-        - name: "PostgreSQL: 'ALTER DATABASE dhis2 SET search_path TO public,postgis;'"
-          shell: |
-            psql \
-              --username="postgres" \
-              --command="ALTER DATABASE dhis2 SET search_path TO public,postgis;"
-          when: pgdg_check_search_path.rc == 1
+            - name: "PostgreSQL: 'dhis2' database, 'postgis' schema"
+              postgresql_schema:
+                database: dhis2
+                name: postgis
+                owner: postgres
 
-        - name: "PostgreSQL: Check default privs 'dhis2' schema 'postgis' select all tables"
-          shell: |
-            psql \
-              --username="postgres" \
-              --tuples-only \
-              --no-align \
-              --dbname="dhis2" \
-              --command="SELECT defaclacl FROM pg_default_acl a JOIN pg_namespace b ON a.defaclnamespace=b.oid WHERE nspname = 'postgis' AND defaclobjtype = 'r';" \
-            | grep -q 'dhis=r/postgres'
-          args:
-            warn: false
-          ignore_errors: true
-          changed_when: false
-          register: pgdg_check_defaults_tables
+            - name: "PostgreSQL: Check database 'dhis2' value 'search_path'"
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --tuples-only \
+                  --no-align \
+                  --command="SELECT rs.setconfig FROM pg_db_role_setting rs LEFT JOIN pg_roles r ON r.oid = rs.setrole LEFT JOIN pg_database d ON d.oid = rs.setdatabase WHERE r.rolname = 'dhis' OR d.datname = 'dhis2';" \
+                | grep -q -E '(=|,\s*)postgis("|,)'
+              args:
+                warn: false
+              ignore_errors: true
+              changed_when: false
+              register: pgdg_check_search_path
 
-        - name: "PostgreSQL: 'ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT SELECT ON TABLES TO dhis;'"
-          shell: |
-            psql \
-              --username="postgres" \
-              --dbname="dhis2" \
-              --command="ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT SELECT ON TABLES TO dhis;"
-          when: pgdg_check_defaults_tables.rc == 1
+            - name: "PostgreSQL: 'ALTER DATABASE dhis2 SET search_path TO public,postgis;'"
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --command="ALTER DATABASE dhis2 SET search_path TO public,postgis;"
+              when: pgdg_check_search_path.rc == 1
 
-        - name: "PostgreSQL: Check default privs 'dhis2' schema 'postgis' usage, select all sequences"
-          shell: |
-            psql \
-              --username="postgres" \
-              --tuples-only \
-              --no-align \
-              --dbname="dhis2" \
-              --command="SELECT defaclacl FROM pg_default_acl a JOIN pg_namespace b ON a.defaclnamespace=b.oid WHERE nspname = 'postgis' AND defaclobjtype = 'S';" \
-            | grep -q 'dhis=rU/postgres'
-          args:
-            warn: false
-          ignore_errors: true
-          changed_when: false
-          register: pgdg_check_defaults_sequences
+            - name: "PostgreSQL: Check default privs 'dhis2' schema 'postgis' select all tables"
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --tuples-only \
+                  --no-align \
+                  --dbname="dhis2" \
+                  --command="SELECT defaclacl FROM pg_default_acl a JOIN pg_namespace b ON a.defaclnamespace=b.oid WHERE nspname = 'postgis' AND defaclobjtype = 'r';" \
+                | grep -q 'dhis=r/postgres'
+              args:
+                warn: false
+              ignore_errors: true
+              changed_when: false
+              register: pgdg_check_defaults_tables
 
-        - name: "PostgreSQL: 'ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT USAGE, SELECT ON SEQUENCES TO dhis;'"
-          shell: |
-            psql \
-              --username="postgres" \
-              --dbname="dhis2" \
-              --command="ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT USAGE, SELECT ON SEQUENCES TO dhis;"
-          when: pgdg_check_defaults_sequences.rc == 1
+            - name: "PostgreSQL: 'ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT SELECT ON TABLES TO dhis;'"
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --dbname="dhis2" \
+                  --command="ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT SELECT ON TABLES TO dhis;"
+              when: pgdg_check_defaults_tables.rc == 1
 
-        - name: "PostgreSQL: Check default privs 'dhis2' schema 'postgis' execute all functions"
-          shell: |
-            psql \
-              --username="postgres" \
-              --tuples-only \
-              --no-align \
-              --dbname="dhis2" \
-              --command="SELECT defaclacl FROM pg_default_acl a JOIN pg_namespace b ON a.defaclnamespace=b.oid WHERE nspname = 'postgis' AND defaclobjtype = 'f';" \
-            | grep -q 'dhis=X/postgres'
-          args:
-            warn: false
-          ignore_errors: true
-          changed_when: false
-          register: pgdg_check_defaults_functions
+            - name: "PostgreSQL: Check default privs 'dhis2' schema 'postgis' usage, select all sequences"
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --tuples-only \
+                  --no-align \
+                  --dbname="dhis2" \
+                  --command="SELECT defaclacl FROM pg_default_acl a JOIN pg_namespace b ON a.defaclnamespace=b.oid WHERE nspname = 'postgis' AND defaclobjtype = 'S';" \
+                | grep -q 'dhis=rU/postgres'
+              args:
+                warn: false
+              ignore_errors: true
+              changed_when: false
+              register: pgdg_check_defaults_sequences
 
-        - name: "PostgreSQL: 'ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT EXECUTE ON FUNCTIONS TO dhis;'"
-          shell: |
-            psql \
-              --username="postgres" \
-              --dbname="dhis2" \
-              --command="ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT EXECUTE ON FUNCTIONS TO dhis;"
-          when: pgdg_check_defaults_functions.rc == 1
+            - name: "PostgreSQL: 'ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT USAGE, SELECT ON SEQUENCES TO dhis;'"
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --dbname="dhis2" \
+                  --command="ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT USAGE, SELECT ON SEQUENCES TO dhis;"
+              when: pgdg_check_defaults_sequences.rc == 1
 
-        - name: "PostgreSQL: Check for extension 'postgis' in schema 'postgis'"
-          shell: |
-            psql \
-              --username="postgres" \
-              --tuples-only \
-              --no-align \
-              --field-separator='|' \
-              --dbname="dhis2" \
-              --command="\dx" \
-            | grep -q -E '^postgis\|[0-9.]+[^\|]*\|postgis\|'
-          args:
-            warn: false
-          ignore_errors: true
-          changed_when: false
-          register: pgdg_check_extension_postgis
+            - name: "PostgreSQL: Check default privs 'dhis2' schema 'postgis' execute all functions"
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --tuples-only \
+                  --no-align \
+                  --dbname="dhis2" \
+                  --command="SELECT defaclacl FROM pg_default_acl a JOIN pg_namespace b ON a.defaclnamespace=b.oid WHERE nspname = 'postgis' AND defaclobjtype = 'f';" \
+                | grep -q 'dhis=X/postgres'
+              args:
+                warn: false
+              ignore_errors: true
+              changed_when: false
+              register: pgdg_check_defaults_functions
 
-        - name: "PostgreSQL: 'CREATE EXTENSION postgis WITH SCHEMA postgis;'"
-          shell: |
-            psql \
-              --username="postgres" \
-              --dbname="dhis2" \
-              --command="CREATE EXTENSION postgis WITH SCHEMA postgis;"
-          when: pgdg_check_extension_postgis.rc == 1
+            - name: "PostgreSQL: 'ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT EXECUTE ON FUNCTIONS TO dhis;'"
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --dbname="dhis2" \
+                  --command="ALTER DEFAULT PRIVILEGES IN SCHEMA postgis GRANT EXECUTE ON FUNCTIONS TO dhis;"
+              when: pgdg_check_defaults_functions.rc == 1
 
-        - name: "PostgreSQL: 'GRANT USAGE ON SCHEMA postgis TO dhis;'"
-          postgresql_privs:
-            database: dhis2
-            privs: USAGE
-            type: schema
-            objs: postgis
-            roles: dhis
+            - name: "PostgreSQL: Check for extension 'postgis' in schema 'postgis'"
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --tuples-only \
+                  --no-align \
+                  --field-separator='|' \
+                  --dbname="dhis2" \
+                  --command="\dx" \
+                | grep -q -E '^postgis\|[0-9.]+[^\|]*\|postgis\|'
+              args:
+                warn: false
+              ignore_errors: true
+              changed_when: false
+              register: pgdg_check_extension_postgis
 
-        - name: "PostgreSQL: 'GRANT SELECT ON ALL TABLES IN SCHEMA postgis TO dhis;'"
-          postgresql_privs:
-            database: dhis2
-            privs: SELECT
-            type: table
-            objs: ALL_IN_SCHEMA
-            schema: postgis
-            roles: dhis
+            - name: "PostgreSQL: 'CREATE EXTENSION postgis WITH SCHEMA postgis;'"
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --dbname="dhis2" \
+                  --command="CREATE EXTENSION postgis WITH SCHEMA postgis;"
+              when: pgdg_check_extension_postgis.rc == 1
 
-        - name: "PostgreSQL: 'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA postgis TO dhis;'"
-          postgresql_privs:
-            database: dhis2
-            privs: USAGE,SELECT
-            type: sequence
-            objs: ALL_IN_SCHEMA
-            schema: postgis
-            roles: dhis
+            - name: "PostgreSQL: 'GRANT USAGE ON SCHEMA postgis TO dhis;'"
+              postgresql_privs:
+                database: dhis2
+                privs: USAGE
+                type: schema
+                objs: postgis
+                roles: dhis
 
-        - name: "PostgreSQL: Check privs 'dhis2' schema 'postgis' execute functions"
-          # Count the number of functions in the 'postgis' schema with the permission 'dhis=X/postgres'
-          shell: |
-            psql \
-              --username="postgres" \
-              --tuples-only \
-              --no-align \
-              --field-separator='|' \
-              --dbname="dhis2" \
-              --command="SELECT p.proname, p.proacl FROM pg_catalog.pg_proc p LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname OPERATOR(pg_catalog.~) '^(postgis)$';" \
-            | sort -u \
-            | grep -v 'dhis=X/postgres' \
-            | wc -l
-          args:
-            warn: false
-          ignore_errors: true
-          changed_when: false
-          register: pgdg_check_function_permissions
+            - name: "PostgreSQL: 'GRANT SELECT ON ALL TABLES IN SCHEMA postgis TO dhis;'"
+              postgresql_privs:
+                database: dhis2
+                privs: SELECT
+                type: table
+                objs: ALL_IN_SCHEMA
+                schema: postgis
+                roles: dhis
 
-        - name: "PostgreSQL: 'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA postgis TO dhis;'"
-          shell: |
-            psql \
-              --username="postgres" \
-              --dbname="dhis2" \
-              --command="GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA postgis TO dhis;"
-          when: pgdg_check_function_permissions.stdout != "0"
+            - name: "PostgreSQL: 'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA postgis TO dhis;'"
+              postgresql_privs:
+                database: dhis2
+                privs: USAGE,SELECT
+                type: sequence
+                objs: ALL_IN_SCHEMA
+                schema: postgis
+                roles: dhis
+
+            - name: "PostgreSQL: Check privs 'dhis2' schema 'postgis' execute functions"
+              # Count the number of functions in the 'postgis' schema with the permission 'dhis=X/postgres'
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --tuples-only \
+                  --no-align \
+                  --field-separator='|' \
+                  --dbname="dhis2" \
+                  --command="SELECT p.proname, p.proacl FROM pg_catalog.pg_proc p LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname OPERATOR(pg_catalog.~) '^(postgis)$';" \
+                | sort -u \
+                | grep -v 'dhis=X/postgres' \
+                | wc -l
+              args:
+                warn: false
+              ignore_errors: true
+              changed_when: false
+              register: pgdg_check_function_permissions
+
+            - name: "PostgreSQL: 'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA postgis TO dhis;'"
+              shell: |
+                psql \
+                  --username="postgres" \
+                  --dbname="dhis2" \
+                  --command="GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA postgis TO dhis;"
+              when: pgdg_check_function_permissions.stdout != "0"
 
     - name: DHIS2
       tags: dhis2
       block:
 
-      - name: "DHIS2: Create DHIS2_HOME directory /opt/dhis2"
-        file:
-          path: /opt/dhis2
-          state: directory
-          owner: tomcat
-          group: tomcat
+        - name: "DHIS2: Create DHIS2_HOME directory /opt/dhis2"
+          file:
+            path: /opt/dhis2
+            state: directory
+            owner: tomcat
+            group: tomcat
 
-      - name: "DHIS2: Configuration file /opt/dhis2/dhis.conf with database credentials"
-        copy:
-          dest: /opt/dhis2/dhis.conf
-          owner: tomcat
-          group: tomcat
-          backup: false
-          content: |
-            connection.dialect = org.hibernate.dialect.PostgreSQLDialect
-            connection.driver_class = org.postgresql.Driver
-            connection.url = jdbc:postgresql:dhis2
-            connection.username = dhis
-            connection.password = {{ lookup('password', '/tmp/pg_dhis_passwd.txt chars=ascii_letters,digits') }}
-            connection.schema = update
+        - name: "DHIS2: Configuration file /opt/dhis2/dhis.conf with database credentials"
+          copy:
+            dest: /opt/dhis2/dhis.conf
+            owner: tomcat
+            group: tomcat
+            backup: false
+            content: |
+              connection.dialect = org.hibernate.dialect.PostgreSQLDialect
+              connection.driver_class = org.postgresql.Driver
+              connection.url = jdbc:postgresql:dhis2
+              connection.username = dhis
+              connection.password = {{ lookup('password', '/tmp/pg_dhis_passwd.txt chars=ascii_letters,digits') }}
+              connection.schema = update
 
-      - name: "DHIS2: Download DHIS2 {{dhis2_version}} war file to Tomcat webapps"
-        get_url:
-          url: "https://s3.amazonaws.com/dhis2-builds/{{ dhis2_version }}/latest/dhis.war"
-          checksum: "sha256:https://s3.amazonaws.com/dhis2-builds/{{ dhis2_version }}/latest/dhis.war.sha256"
-          dest: /var/lib/tomcat/webapps/ROOT.war
-          owner: tomcat
-          group: tomcat
+        - name: "DHIS2: Download DHIS2 {{dhis2_version}} war file to Tomcat webapps"
+          get_url:
+            url: "https://s3.amazonaws.com/dhis2-builds/{{ dhis2_version }}/latest/dhis.war"
+            checksum: "sha256:https://s3.amazonaws.com/dhis2-builds/{{ dhis2_version }}/latest/dhis.war.sha256"
+            dest: /var/lib/tomcat/webapps/ROOT.war
+            owner: tomcat
+            group: tomcat
 
-      - name: "DHIS2: Create directory to unarchive dhis.war into"
-        file:
-          path: /var/lib/tomcat/webapps/ROOT
-          state: directory
-          owner: tomcat
-          group: tomcat
+        - name: "DHIS2: Create directory to unarchive dhis.war into"
+          file:
+            path: /var/lib/tomcat/webapps/ROOT
+            state: directory
+            owner: tomcat
+            group: tomcat
 
-      - name: "DHIS2: Unarchive dhis.war"
-        unarchive:
-          src: /var/lib/tomcat/webapps/ROOT.war
-          dest: /var/lib/tomcat/webapps/ROOT/
-          creates: /var/lib/tomcat/webapps/ROOT/WEB-INF/web.xml
-          owner: tomcat
-          group: tomcat
+        - name: "DHIS2: Unarchive dhis.war"
+          unarchive:
+            src: /var/lib/tomcat/webapps/ROOT.war
+            dest: /var/lib/tomcat/webapps/ROOT/
+            creates: /var/lib/tomcat/webapps/ROOT/WEB-INF/web.xml
+            owner: tomcat
+            group: tomcat
 
     - name: Nginx
       tags: nginx
       block:
 
-      - name: "Nginx: install package"
-        package:
-          name: nginx
-          state: present
+        - name: "Nginx: install package"
+          package:
+            name: nginx
+            state: present
 
-      - name: "Nginx: Configure proxy to Tomcat"
-        block:
+        - name: "Nginx: Configure proxy to Tomcat"
+          block:
 
-        - name: "Nginx: client_max_body_size 32m"
-          lineinfile:
-            path: /etc/nginx/nginx.conf
-            insertafter: '^[^#]\s+access_log\s+/var/log/nginx/access.log\s+main;\s+'
-            line: '    client_max_body_size 32m;'
-            validate: nginx -c %s -t
+            - name: "Nginx: client_max_body_size 32m"
+              lineinfile:
+                path: /etc/nginx/nginx.conf
+                insertafter: '^[^#]\s+access_log\s+/var/log/nginx/access.log\s+main;\s+'
+                line: '    client_max_body_size 32m;'
+                validate: nginx -c %s -t
 
-        - name: "Nginx: proxy_pass"
-          lineinfile:
-            path: /etc/nginx/nginx.conf
-            insertafter: '^[^#]\s+location\s+/\s+{'
-            line: '          proxy_pass  http://localhost:8080;'
-            validate: nginx -c %s -t
+            - name: "Nginx: proxy_pass"
+              lineinfile:
+                path: /etc/nginx/nginx.conf
+                insertafter: '^[^#]\s+location\s+/\s+{'
+                line: '          proxy_pass  http://localhost:8080;'
+                validate: nginx -c %s -t
 
-        - name: "Nginx: proxy_redirect"
-          lineinfile:
-            path: /etc/nginx/nginx.conf
-            insertafter: '^[^#]\s+proxy_pass\s+'
-            line: '          proxy_redirect  off;'
-            validate: nginx -c %s -t
+            - name: "Nginx: proxy_redirect"
+              lineinfile:
+                path: /etc/nginx/nginx.conf
+                insertafter: '^[^#]\s+proxy_pass\s+'
+                line: '          proxy_redirect  off;'
+                validate: nginx -c %s -t
 
-        - name: "Nginx: proxy_set_header Host"
-          lineinfile:
-            path: /etc/nginx/nginx.conf
-            insertafter: '^[^#]\s+proxy_redirect\s+'
-            line: '          proxy_set_header  Host               $http_host;'
-            validate: nginx -c %s -t
+            - name: "Nginx: proxy_set_header Host"
+              lineinfile:
+                path: /etc/nginx/nginx.conf
+                insertafter: '^[^#]\s+proxy_redirect\s+'
+                line: '          proxy_set_header  Host               $http_host;'
+                validate: nginx -c %s -t
 
-        - name: "Nginx: proxy_set_header X-Forwarded-Proto"
-          lineinfile:
-            path: /etc/nginx/nginx.conf
-            insertafter: '^[^#]\s+proxy_set_header\s+Host\s+'
-            line: '          proxy_set_header  X-Forwarded-Proto  $scheme;'
-            validate: nginx -c %s -t
+            - name: "Nginx: proxy_set_header X-Forwarded-Proto"
+              lineinfile:
+                path: /etc/nginx/nginx.conf
+                insertafter: '^[^#]\s+proxy_set_header\s+Host\s+'
+                line: '          proxy_set_header  X-Forwarded-Proto  $scheme;'
+                validate: nginx -c %s -t
 
-      - name: "Nginx: Start service and enable to start on boot"
-        service:
-          name: nginx
-          state: started
-          enabled: true
+        - name: "Nginx: Start service and enable to start on boot"
+          service:
+            name: nginx
+            state: started
+            enabled: true
