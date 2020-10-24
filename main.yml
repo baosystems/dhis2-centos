@@ -7,6 +7,40 @@
     postgresql_version: 13
     tomcat_install_method: source
 
+  pre_tasks:
+
+    - name: Download latest versions of roles baosystems.postgresql and baosystems.tomcat
+      command:
+        argv:
+          - ansible-galaxy
+          - role
+          - install
+          - --roles-path=/etc/ansible/roles
+          - --force
+          - --force-with-deps
+          - "https://bitbucket.org/baosystems/{{ item }}/downloads/master.tar.gz,master,{{ item }}"
+      loop:
+        - baosystems.postgresql
+        - baosystems.tomcat
+
+    - name: Query additional requirements for baosystems.postgresql
+      uri:
+        url: "https://bitbucket.org/baosystems/baosystems.postgresql/raw/master/molecule/shared/common/requirements.yml"
+        return_content: true
+      register: pg_reqs
+      no_log: true
+
+    - name: Download additional requirements for baosystems.postgresql not in its meta/main.yml
+      command:
+        argv:
+          - ansible-galaxy
+          - role
+          - install
+          - --roles-path=/etc/ansible/roles
+          - --force
+          - --force-with-deps
+          - "{{ item.src }},{{ item.version }}"
+      loop: "{{ pg_reqs.content | from_yaml }}"
 
   tasks:
 
