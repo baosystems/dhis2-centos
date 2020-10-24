@@ -7,16 +7,20 @@
     postgresql_version: 13
     tomcat_install_method: source
 
-  roles:
-    - baosystems.postgresql
-    - baosystems.tomcat
 
   tasks:
 
+    - name: "Tomcat: install with role baosystems.tomcat"
+      include_role:
+        name: baosystems.tomcat
 
     - name: PostgreSQL
       tags: postgresql
       block:
+
+        - name: "PostgreSQL: install with role baosystems.postgresql"
+          include_role:
+            name: baosystems.postgresql
 
         - name: "PostgreSQL: Set up conf.d/50-dhis2.conf"
           copy:
