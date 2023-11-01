@@ -1,8 +1,12 @@
+# _Archive notice_
+
+This project is no longer updated. Check out our container solution: https://github.com/baosystems/docker-dhis2
+
 # About
 
 Install PostgreSQL, Tomcat, Nginx, and DHIS2 on CentOS 7.
 
-# _WARNING_
+# Warning
 
 **Do not use this configuration in any production workloads!** Configurations are intended for local development environments _only!_
 
